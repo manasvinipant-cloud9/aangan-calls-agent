@@ -11,6 +11,7 @@
     "setup:hubspot": "tsx --env-file=.env.local scripts/setup-hubspot.ts",
     "migrate": "tsx --env-file=.env.local scripts/migrate.ts",
     "cleanup:sim": "tsx --env-file=.env.local scripts/cleanup-sim.ts",
+    "build:prompt": "tsx scripts/build-vaani-prompt.ts",
     "simulate": "tsx --env-file=.env.local scripts/simulate.ts"
   },
   "dependencies": {

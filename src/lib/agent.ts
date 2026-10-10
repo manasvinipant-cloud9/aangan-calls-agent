@@ -194,3 +194,48 @@ export async function runTurn(history: Turn[], prev: CallState): Promise<TurnRes
 
   return { reply, endCall, state, decision, priceBlocked: blocked, rawReply: out.reply, model: modelUsed, tokens };
 }
+
+
+/**
+ * Post-call analysis: Vaani ran the conversation with its own AI; we read the finished transcript and judge the
+ * five criteria exactly as qualified.md says. The deterministic decide() still owns the outcome.
+ */
+export async function analyzeTranscript(turns: Turn[]): Promise<{ state: CallState; tokens: { input: number; output: number }; ok: boolean }> {
+  const k = knowledge();
+  const system = `You review a FINISHED phone call between a voice assistant and a caller for Aangan Studio, an interior design studio in Pune.
+Fill the JSON from what the caller actually said. Do not invent anything. Use null when not stated.
+Judge each of the five criteria as pass, fail or unclear with a short quote as evidence. "unclear" is the default when the caller did not settle it.
+A fail on decision_maker is not grounds to decline: use unclear. Timeline: pass if they want execution to start about 8+ weeks out or are flexible; fail only if they clearly need it finished in well under 6 weeks; a move-in date alone is unclear.
+intent = complaint if they are unhappy about an existing project, a designer, or a missed follow-up. frustrated = true if they sounded upset.
+asked_about_price = true if the caller asked what it would cost, even indirectly.
+Put "" in reply and false in caller_wants_to_end. Return JSON only.
+
+# Studio services
+${k.services}
+
+# Qualification rubric
+${k.qualified}`;
+  const text = turns.map((t) => `${t.role === "agent" ? "AGENT" : "CALLER"}: ${t.text}`).join("\n");
+  const tokens = { input: 0, output: 0 };
+  const started = Date.now();
+  const live = MODELS.filter((m) => (cooldown.get(m) ?? 0) <= Date.now());
+  for (const model of live.length ? live : MODELS.slice(0, 2)) {
+    if (Date.now() - started > 40_000) break;
+    try {
+      const res = await ai().models.generateContent({
+        model,
+        contents: [{ role: "user", parts: [{ text }] }],
+        config: { systemInstruction: system, responseMimeType: "application/json", responseJsonSchema: z.toJSONSchema(TurnOutputSchema), temperature: 0, abortSignal: AbortSignal.timeout(15_000) },
+      });
+      tokens.input += res.usageMetadata?.promptTokenCount ?? 0;
+      tokens.output += res.usageMetadata?.candidatesTokenCount ?? 0;
+      const out = TurnOutputSchema.parse(JSON.parse(res.text ?? ""));
+      return { state: merge(emptyState(), out, []), tokens, ok: true };
+    } catch (err) {
+      const msg = String(err);
+      cooldown.set(model, Date.now() + (msg.includes('"code":429') ? 5 * 60_000 : msg.includes('"code":404') ? 3600_000 : 45_000));
+      console.error(`analysis ${model} failed:`, msg.replace(/\s+/g, " ").slice(0, 140));
+    }
+  }
+  return { state: emptyState(), tokens, ok: false };
+}
