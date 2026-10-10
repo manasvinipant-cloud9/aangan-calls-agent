@@ -6,7 +6,7 @@ context. Never quotes a price. Full case and decisions: `BRIEF.md`.
 
 ```
 Caller -> Vaani AI -> POST /api/vaani/turn  (each utterance)  -> Gemini -> reply spoken back
-                      POST /api/vaani/end   (hang-up/drop/missed) -> Supabase + HubSpot + Telegram
+                      POST /api/vaani/end   (hang-up/drop/missed) -> Neon + HubSpot + Telegram
 Dashboard: /dashboard?key=DASHBOARD_KEY
 ```
 
@@ -21,7 +21,7 @@ Dashboard: /dashboard?key=DASHBOARD_KEY
 
 ## Setup
 1. `npm install`
-2. Create a Supabase project, run `supabase/migrations/0001_init.sql` in the SQL editor.
+2. Create a Neon project, put its connection string in `.env.local` as `DATABASE_URL`, then run `npm run migrate`.
 3. Copy `.env.example` to `.env.local` and fill it in.
 4. `npm test`, then `GEMINI_API_KEY=... npm run eval` to replay the 20 phone calls.
 5. Push to GitHub, import into Vercel, add the same env vars there.

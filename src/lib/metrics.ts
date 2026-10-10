@@ -1,4 +1,4 @@
-import { db, type CallRow } from "./db";
+import { query, type CallRow } from "./db";
 import { ratesConfigured } from "./cost";
 
 type UsageRow = { call_id: string; call_minutes: number; total_cost_inr: number; telephony_cost_inr: number; speech_cost_inr: number; gemini_cost_inr: number };
@@ -8,14 +8,10 @@ export const BASELINE = { unansweredPerMonth: 96, minutesPerQualified: 10 + 2 + 
 
 export async function getMetrics(days: number) {
   const since = new Date(Date.now() - days * 864e5).toISOString();
-  const sb = db();
-  const { data: calls } = await sb.from("calls").select("*").gte("started_at", since).order("started_at", { ascending: false });
-  const rows = (calls ?? []) as CallRow[];
+  const rows = await query<CallRow>("select * from calls where started_at >= $1 order by started_at desc", [since]);
   const ids = rows.map((c) => c.id);
-  const { data: u } = ids.length ? await sb.from("usage").select("*").in("call_id", ids) : { data: [] };
-  const usage = (u ?? []) as UsageRow[];
-  const { data: h } = ids.length ? await sb.from("handoffs").select("call_id,target,ok").in("call_id", ids) : { data: [] };
-  const handoffs = (h ?? []) as { call_id: string; target: string; ok: boolean }[];
+  const usage = ids.length ? await query<UsageRow>("select * from usage where call_id = any($1::uuid[])", [ids]) : [];
+  const handoffs = ids.length ? await query<{ call_id: string; target: string; ok: boolean }>("select call_id, target, ok from handoffs where call_id = any($1::uuid[])", [ids]) : [];
 
   const count = (s: string) => rows.filter((c) => c.status === s).length;
   const answered = rows.filter((c) => c.status !== "missed");

@@ -42,8 +42,3 @@ create table if not exists usage (
   gemini_cost_inr numeric not null default 0,
   total_cost_inr numeric not null default 0
 );
-
--- Server-side only (service-role key). No policies = no anon/public access.
-alter table calls enable row level security;
-alter table handoffs enable row level security;
-alter table usage enable row level security;

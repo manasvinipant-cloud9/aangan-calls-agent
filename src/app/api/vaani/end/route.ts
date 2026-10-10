@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { authorised, parseVaani } from "@/lib/vaani";
-import { db, type CallRow } from "@/lib/db";
+import { isAfterHours, one, query, type CallRow } from "@/lib/db";
 import { finalizeCall } from "@/lib/handoff";
 
 export const maxDuration = 60;
@@ -11,12 +11,13 @@ export async function POST(req: Request) {
   const ev = parseVaani(await req.json().catch(() => null));
   if (!ev) return NextResponse.json({ error: "bad payload" }, { status: 400 });
 
-  const sb = db();
-  const { data: existing } = await sb.from("calls").select("*").eq("external_id", ev.callId).maybeSingle<CallRow>();
+  const existing = await one<CallRow>("select * from calls where external_id = $1", [ev.callId]);
   if (!existing) {
-    const { isAfterHours } = await import("@/lib/db");
     const started = ev.startedAt ? new Date(ev.startedAt) : new Date();
-    await sb.from("calls").insert({ external_id: ev.callId, caller_number: ev.from, started_at: started.toISOString(), after_hours: isAfterHours(started) });
+    await query(
+      "insert into calls (external_id, caller_number, started_at, after_hours) values ($1, $2, $3, $4) on conflict (external_id) do nothing",
+      [ev.callId, ev.from, started.toISOString(), isAfterHours(started)],
+    );
   }
   const tokens = (existing?.state as { _tokens?: { input: number; output: number } } | undefined)?._tokens;
   const res = await finalizeCall(ev.callId, { durationSec: ev.durationSec, tokens });

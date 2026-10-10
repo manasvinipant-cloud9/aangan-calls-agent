@@ -1,4 +1,4 @@
-import { db, type CallRow } from "./db";
+import { one, query, json, type CallRow } from "./db";
 import { decide } from "./qualify";
 import { callCost } from "./cost";
 import { esc, sendTelegram, type Target } from "./telegram";
@@ -50,15 +50,10 @@ const targetFor = (s: CallStatus): Target | null =>
 
 /** Finalise once per call: decide, cost, log, hand off. Idempotent via the finalized_at claim. */
 export async function finalizeCall(externalId: string, o: { durationSec?: number; tokens?: { input: number; output: number }; priceBlocked?: number } = {}) {
-  const sb = db();
-  const { data: claimed } = await sb
-    .from("calls")
-    .update({ finalized_at: new Date().toISOString(), ended_at: new Date().toISOString() })
-    .eq("external_id", externalId)
-    .is("finalized_at", null)
-    .select()
-    .single();
-  const call = claimed as CallRow | null;
+  const call = await one<CallRow>(
+    "update calls set finalized_at = now(), ended_at = now() where external_id = $1 and finalized_at is null returning *",
+    [externalId],
+  );
   if (!call) return { already: true as const };
 
   const state: CallState = { ...emptyState(), ...(call.state as Partial<CallState>) } as CallState;
@@ -70,16 +65,14 @@ export async function finalizeCall(externalId: string, o: { durationSec?: number
 
   const tokens = o.tokens ?? { input: 0, output: 0 };
   const cost = callCost(duration, tokens);
-  await sb.from("usage").upsert({
-    call_id: call.id,
-    call_minutes: cost.minutes,
-    gemini_input_tokens: tokens.input,
-    gemini_output_tokens: tokens.output,
-    telephony_cost_inr: cost.telephony,
-    speech_cost_inr: cost.speech,
-    gemini_cost_inr: cost.gemini,
-    total_cost_inr: cost.total,
-  });
+  await query(
+    `insert into usage (call_id, call_minutes, gemini_input_tokens, gemini_output_tokens, telephony_cost_inr, speech_cost_inr, gemini_cost_inr, total_cost_inr)
+     values ($1,$2,$3,$4,$5,$6,$7,$8)
+     on conflict (call_id) do update set call_minutes = excluded.call_minutes, gemini_input_tokens = excluded.gemini_input_tokens,
+       gemini_output_tokens = excluded.gemini_output_tokens, telephony_cost_inr = excluded.telephony_cost_inr,
+       speech_cost_inr = excluded.speech_cost_inr, gemini_cost_inr = excluded.gemini_cost_inr, total_cost_inr = excluded.total_cost_inr`,
+    [call.id, cost.minutes, tokens.input, tokens.output, cost.telephony, cost.speech, cost.gemini, cost.total],
+  );
 
   const note = buildNote(call, state, d);
   const target = targetFor(d.status);
@@ -87,7 +80,7 @@ export async function finalizeCall(externalId: string, o: { durationSec?: number
   if (target) sends.push({ target, r: await sendTelegram(target, note) });
   if (d.status === "escalated") sends.push({ target: "founder", r: await sendTelegram("founder", note) });
   for (const s of sends)
-    await sb.from("handoffs").insert({ call_id: call.id, channel: "telegram", target: s.target, note, ok: s.r.ok, error: s.r.error ?? null });
+    await query("insert into handoffs (call_id, channel, target, note, ok, error) values ($1, 'telegram', $2, $3, $4, $5)", [call.id, s.target, note, s.r.ok, s.r.error ?? null]);
 
   const hs = await syncHubspot({
     phone: call.caller_number,
@@ -108,19 +101,11 @@ export async function finalizeCall(externalId: string, o: { durationSec?: number
   });
   if (hs.error) console.error("hubspot", hs.error);
 
-  await sb
-    .from("calls")
-    .update({
-      status: d.status,
-      reason: d.reason,
-      caller_name: state.extracted.name,
-      duration_sec: duration,
-      price_asked: state.asked_about_price,
-      price_blocked_count: o.priceBlocked ?? call.price_blocked_count,
-      hubspot_contact_id: hs.contactId ?? null,
-      hubspot_deal_id: hs.dealId ?? null,
-    })
-    .eq("id", call.id);
+  await query(
+    `update calls set status = $2, reason = $3, caller_name = $4, duration_sec = $5, price_asked = $6,
+       price_blocked_count = $7, hubspot_contact_id = $8, hubspot_deal_id = $9 where id = $1`,
+    [call.id, d.status, d.reason, state.extracted.name, duration, state.asked_about_price, o.priceBlocked ?? call.price_blocked_count, hs.contactId ?? null, hs.dealId ?? null],
+  );
 
   return { already: false as const, status: d.status };
 }

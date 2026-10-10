@@ -1,9 +1,21 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { neon } from "@neondatabase/serverless";
 
-let c: SupabaseClient | null = null;
-/** Service-role client: server-side only, never imported by client components. */
-export const db = () =>
-  (c ??= createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } }));
+let sql: ReturnType<typeof neon> | null = null;
+const conn = () => (sql ??= neon(process.env.DATABASE_URL!));
+
+// Neon returns timestamps as Date objects; the rest of the app works with ISO strings.
+const norm = (row: Record<string, unknown>) =>
+  Object.fromEntries(Object.entries(row).map(([k, v]) => [k, v instanceof Date ? v.toISOString() : v]));
+
+/** Parameterised SQL (Neon serverless HTTP driver). Always pass values as $1, $2... never interpolate. */
+export async function query<T = CallRow>(text: string, params: unknown[] = []): Promise<T[]> {
+  const rows = (await conn().query(text, params)) as Record<string, unknown>[];
+  return rows.map(norm) as T[];
+}
+export async function one<T = CallRow>(text: string, params: unknown[] = []): Promise<T | null> {
+  return (await query<T>(text, params))[0] ?? null;
+}
+export const json = (v: unknown) => JSON.stringify(v);
 
 export type CallRow = {
   id: string;

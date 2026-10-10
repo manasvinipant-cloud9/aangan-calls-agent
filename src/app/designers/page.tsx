@@ -1,4 +1,4 @@
-import { db, type CallRow } from "@/lib/db";
+import { query, type CallRow } from "@/lib/db";
 import { updateLead } from "./actions";
 import type { CallState } from "@/lib/types";
 
@@ -40,12 +40,12 @@ export default async function Designers({ searchParams }: { searchParams: Promis
     return <main style={{ padding: 24, fontFamily: "system-ui" }}>Not authorised. Open this page from your designer link.</main>;
   }
   const t = tab === "callbacks" || tab === "done" ? tab : "open";
-  let q = db().from("calls").select("*").neq("status", "declined").neq("status", "in_progress");
-  if (t === "open") q = q.eq("status", "qualified").in("lead_status", ["new", "contacted"]).order("started_at", { ascending: true });
-  else if (t === "done") q = q.eq("status", "qualified").in("lead_status", ["consultation_booked", "not_a_fit"]).order("started_at", { ascending: false });
-  else q = q.in("status", ["borderline", "escalated", "incomplete", "missed"]).in("lead_status", ["new", "contacted"]).order("started_at", { ascending: false });
-  const { data } = await q.limit(60);
-  const rows = (data ?? []) as CallRow[];
+  const WHERE: Record<string, string> = {
+    open: "status = 'qualified' and lead_status in ('new','contacted') order by started_at asc",
+    done: "status = 'qualified' and lead_status in ('consultation_booked','not_a_fit') order by started_at desc",
+    callbacks: "status in ('borderline','escalated','incomplete','missed') and lead_status in ('new','contacted') order by started_at desc",
+  };
+  const rows = await query<CallRow>(`select * from calls where ${WHERE[t]} limit 60`);
   const href = (x: string) => `/designers?key=${key}&tab=${x}`;
 
   return (
