@@ -7,7 +7,7 @@ import type { CallState } from "@/lib/types";
 export const maxDuration = 30;
 
 /** One caller utterance in, one spoken reply out. Vaani speaks `reply` and hangs up if `end_call`. */
-export async function POST(req: Request) {
+async function handle(req: Request) {
   if (!authorised(req)) return NextResponse.json({ error: "unauthorised" }, { status: 401 });
   const ev = parseVaani(await req.json().catch(() => null));
   if (!ev) return NextResponse.json({ error: "bad payload" }, { status: 400 });
@@ -60,4 +60,14 @@ export async function POST(req: Request) {
   );
 
   return NextResponse.json({ reply: r.reply, end_call: r.endCall });
+}
+
+/** Whatever goes wrong, the caller hears a polite line, never a platform error page. */
+export async function POST(req: Request) {
+  try {
+    return await handle(req);
+  } catch (err) {
+    console.error("turn failed", err);
+    return NextResponse.json({ reply: "Sorry, I didn't catch that. Could you say that once more?", end_call: false });
+  }
 }

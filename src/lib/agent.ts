@@ -133,6 +133,11 @@ export type TurnResult = {
   tokens: { input: number; output: number };
 };
 
+const TURN_BUDGET_MS = 14_000;
+const ATTEMPT_MS = 6_000;
+/** model -> time before which we skip it (per warm server instance). */
+const cooldown = new Map<string, number>();
+
 const FALLBACK = "Sorry, I didn't catch that. Could you say that once more?";
 
 export async function runTurn(history: Turn[], prev: CallState): Promise<TurnResult> {
@@ -142,25 +147,36 @@ export async function runTurn(history: Turn[], prev: CallState): Promise<TurnRes
   const tokens = { input: 0, output: 0 };
 
   let out: TurnOutput | null = null;
-  let modelUsed = MODELS[0];
-  for (let attempt = 0; attempt < MODELS.length && !out; attempt++) {
-    modelUsed = MODELS[attempt];
+  // A live caller cannot wait 30 s: cap each attempt and the whole turn, and skip models that just failed.
+  const started = Date.now();
+  const now = () => Date.now();
+  const live = MODELS.filter((m) => (cooldown.get(m) ?? 0) <= now());
+  const order = live.length ? live : MODELS.slice(0, 2);
+  let modelUsed = order[0];
+  for (const model of order) {
+    const left = TURN_BUDGET_MS - (now() - started);
+    if (out || left < 2500) break;
+    modelUsed = model;
     try {
       const res = await ai().models.generateContent({
-        model: modelUsed,
+        model,
         contents,
         config: {
           systemInstruction: systemPrompt(prev, prevDecision),
           responseMimeType: "application/json",
           responseJsonSchema: z.toJSONSchema(TurnOutputSchema),
           temperature: 0.3,
+          abortSignal: AbortSignal.timeout(Math.min(ATTEMPT_MS, left)),
         },
       });
       tokens.input += res.usageMetadata?.promptTokenCount ?? 0;
       tokens.output += res.usageMetadata?.candidatesTokenCount ?? 0;
       out = TurnOutputSchema.parse(JSON.parse(res.text ?? ""));
     } catch (err) {
-      console.error(`gemini ${modelUsed} failed, trying next:`, String(err).slice(0, 160));
+      const msg = String(err);
+      // 429 = quota (retry later), 404 = retired model, anything else (503, timeout) = brief overload.
+      cooldown.set(model, now() + (msg.includes('"code":429') ? 5 * 60_000 : msg.includes('"code":404') ? 3600_000 : 45_000));
+      console.error(`gemini ${model} failed, trying next:`, msg.replace(/\s+/g, " ").slice(0, 160));
     }
   }
   if (!out) return { reply: FALLBACK, endCall: false, state: prev, decision: prevDecision, priceBlocked: false, failed: true, rawReply: FALLBACK, model: modelUsed, tokens };
