@@ -6,8 +6,9 @@ import { moveDealStage, type LeadStatus } from "@/lib/hubspot";
 const STATUSES: LeadStatus[] = ["new", "contacted", "consultation_booked", "not_a_fit"];
 
 export async function updateLead(fd: FormData) {
-  const key = process.env.DESIGNER_KEY;
-  if (!key || fd.get("key") !== key) throw new Error("unauthorised");
+  const given = fd.get("key");
+  const keys = [process.env.DESIGNER_KEY, process.env.DASHBOARD_KEY].filter(Boolean);
+  if (typeof given !== "string" || !keys.includes(given)) throw new Error("unauthorised");
   const id = String(fd.get("id"));
   const status = String(fd.get("lead_status")) as LeadStatus;
   if (!STATUSES.includes(status)) throw new Error("bad status");
@@ -27,5 +28,5 @@ export async function updateLead(fd: FormData) {
     const r = await moveDealStage(cur.hubspot_deal_id, status);
     if (!r.ok) console.error("hubspot stage sync", r.error);
   }
-  revalidatePath("/designers");
+  revalidatePath("/leads");
 }
