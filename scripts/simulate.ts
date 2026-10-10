@@ -1,5 +1,5 @@
 /** Sends 3 scripted calls (qualified, declined, missed) through the local webhooks. Needs `npm run dev` running. Rows are tagged sim-*. */
-const BASE = "http://localhost:3000";
+const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const H = { "content-type": "application/json", "x-webhook-secret": process.env.VAANI_WEBHOOK_SECRET! };
 const post = async (p: string, b: object) => (await fetch(BASE + p, { method: "POST", headers: H, body: JSON.stringify(b) })).json() as Promise<any>;
 const stamp = Date.now();
