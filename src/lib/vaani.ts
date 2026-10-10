@@ -60,13 +60,16 @@ export function parseVaaniWebhook(body: unknown): VaaniWebhook | null {
   if (!event || !callId) return null;
   const kind = event === "call_started" ? "started" : event === "call_ended" ? "ended" : event === "call_postprocessing" ? "post" : "other";
   const entities = (d.entities && typeof d.entities === "object" ? d.entities : undefined) as Record<string, unknown> | undefined;
-  const dur = kind === "post" ? Number(d.call_duration) / 1000 : Number(b.call_duration ?? d.call_duration);
+  // Docs say post-processing is in ms and call_ended in seconds, but real calls have sent seconds in both.
+  // A call is never 2h+ in seconds, so anything above that is treated as milliseconds.
+  const raw = Number(d.call_duration ?? b.call_duration);
+  const dur = raw > 7200 ? raw / 1000 : raw;
   return {
     kind,
     event,
     callId,
     from: str(d.contact_number) ?? str(d.caller_number) ?? str(d.from) ?? str(b.from) ?? str(b.caller_number) ?? str(entities?.phone) ?? str(entities?.phone_number) ?? null,
-    durationSec: Number.isFinite(dur) ? dur : undefined,
+    durationSec: Number.isFinite(dur) ? Math.round(dur) : undefined,
     transcript: kind === "post" ? parseTranscript(d.transcript) : undefined,
     entities,
   };

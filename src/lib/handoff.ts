@@ -61,7 +61,7 @@ export async function finalizeCall(externalId: string, o: { durationSec?: number
   const d: Decision = noTurns
     ? { status: "missed", reason: "Caller hung up before speaking; no details captured.", ask: [], notes: [] }
     : decide(state, { callEnded: true });
-  const duration = o.durationSec ?? Math.round((Date.now() - new Date(call.started_at).getTime()) / 1000);
+  const duration = Math.round(o.durationSec ?? Math.round((Date.now() - new Date(call.started_at).getTime()) / 1000));
 
   const tokens = o.tokens ?? { input: 0, output: 0 };
   const cost = callCost(duration, tokens);
