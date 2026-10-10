@@ -1,32 +1,18 @@
 import { query, type CallRow } from "@/lib/db";
 import type { CallState } from "@/lib/types";
 import { updateLead } from "../designers/actions";
+import { BASE_CSS } from "@/lib/theme";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Aangan Studio: Enquiry desk", robots: { index: false, follow: false } };
 
 const CSS = `
-:root{--bg:#f6f2eb;--surface:#fffdf9;--ink:#2b2622;--mute:#7b7268;--line:#e8e0d4;--clay:#b5573a;--clay-soft:#f6e4dc;--sage:#58775c;--sage-soft:#e3eee4;--gold:#a97c2c;--gold-soft:#f6ecd6;--stone:#8b857b;--stone-soft:#eeeae3;--teal:#2d6a6a;--teal-soft:#dcecec;--shadow:0 1px 2px rgba(60,40,20,.05),0 6px 20px rgba(60,40,20,.05)}
-@media (prefers-color-scheme:dark){:root{--bg:#171513;--surface:#211e1b;--ink:#f1ece4;--mute:#a39b90;--line:#38332d;--clay:#e08a6c;--clay-soft:#3a2620;--sage:#8fb494;--sage-soft:#22302a;--gold:#d9ae5c;--gold-soft:#352c19;--stone:#b0a99d;--stone-soft:#2b2824;--teal:#7fc0c0;--teal-soft:#1f3434;--shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25)}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--font-sans),system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-main{max-width:1040px;margin:0 auto;padding:28px 18px 72px}
-.serif{font-family:var(--font-serif),Georgia,serif}
-header.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:22px}
-.brand{display:flex;align-items:center;gap:12px}.mark{width:38px;height:38px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-family:var(--font-serif),serif;font-size:19px}
-.brand b{display:block;font-family:var(--font-serif),serif;font-size:20px;font-weight:600;line-height:1.1}.brand span{color:var(--mute);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase}
-.today{color:var(--mute);font-size:13px}
-.hero{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:26px 28px;box-shadow:var(--shadow);margin-bottom:18px}
-.hero h1{font-family:var(--font-serif),serif;font-weight:500;font-size:30px;line-height:1.2;margin:0 0 6px;letter-spacing:-.01em}
-.hero p{margin:0;color:var(--mute);max-width:62ch}
-.hero.alert{border-left:5px solid var(--clay)}.hero.calm{border-left:5px solid var(--sage)}
-.week{display:flex;gap:28px;flex-wrap:wrap;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
-.week div b{font-family:var(--font-serif),serif;font-size:26px;font-weight:500;display:block;line-height:1.1}.week div span{font-size:12.5px;color:var(--mute)}
+
 .pipeline{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:26px}
 .step{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;text-decoration:none;color:var(--ink);position:relative;box-shadow:var(--shadow)}
 .step small{color:var(--mute);font-size:11.5px;letter-spacing:.07em;text-transform:uppercase}.step b{font-family:var(--font-serif),serif;font-size:30px;font-weight:500;display:block;line-height:1.15}.step em{font-style:normal;color:var(--mute);font-size:12.5px}
 .step.on{outline:2px solid var(--ink)}.step::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:4px;border-radius:0 4px 4px 0;background:var(--c)}
 .s1{--c:var(--clay)}.s2{--c:var(--gold)}.s3{--c:var(--sage)}.s4{--c:var(--stone)}
-h2{font-family:var(--font-serif),serif;font-weight:500;font-size:21px;margin:30px 0 4px}.lede{color:var(--mute);margin:0 0 14px;font-size:14px}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}.toolbar input,.toolbar select{font:inherit;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}.toolbar input{flex:1;min-width:200px}
 .toolbar button{font:inherit;padding:9px 18px;border-radius:10px;border:0;background:var(--ink);color:var(--bg);cursor:pointer}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}.chip{padding:6px 13px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--ink);text-decoration:none;font-size:13.5px}.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}.chip i{font-style:normal;opacity:.6;margin-left:5px}
@@ -45,8 +31,6 @@ details.more{border-top:1px solid var(--line)}details.more summary{cursor:pointe
 .panel{padding:4px 24px 20px;display:grid;grid-template-columns:1fr 1fr;gap:22px}.panel h4{margin:0 0 8px;font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--mute);font-weight:600}
 .panel .ts p{margin:0 0 6px;font-size:13.5px}.panel .ts p b{color:var(--mute);font-weight:600}.why{font-size:14px;margin:0 0 12px}
 form.upd{display:grid;gap:8px}form.upd select,form.upd input,form.upd textarea{font:inherit;padding:9px 11px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%}form.upd button{font:inherit;padding:10px 16px;border-radius:10px;border:0;background:var(--clay);color:#fff;cursor:pointer;font-weight:500}
-.empty{background:var(--surface);border:1px dashed var(--line);border-radius:16px;padding:42px 20px;text-align:center;color:var(--mute)}.empty b{display:block;font-family:var(--font-serif),serif;font-size:19px;color:var(--ink);margin-bottom:4px;font-weight:500}
-footer{margin-top:34px;color:var(--mute);font-size:12.5px;text-align:center}
 @media(max-width:760px){.pipeline{grid-template-columns:repeat(2,1fr)}.panel{grid-template-columns:1fr}.side{align-items:flex-start;text-align:left;flex-direction:row;align-items:center;gap:12px}.hero{padding:20px}.hero h1{font-size:25px}}
 `;
 
@@ -99,7 +83,7 @@ function describe(c: CallRow) {
 export default async function Desk({ searchParams }: { searchParams: Promise<{ key?: string; s?: string; days?: string; q?: string; o?: string }> }) {
   const { key, s, days, q, o } = await searchParams;
   const ok = !!key && (key === process.env.DESIGNER_KEY || key === process.env.DASHBOARD_KEY);
-  if (!ok) return <main><div className="empty"><b>This page needs its private link.</b>Open it from the link you were given. <style dangerouslySetInnerHTML={{ __html: CSS }} /></div></main>;
+  if (!ok) return <main><div className="empty"><b>This page needs its private link.</b>Open it from the link you were given. <style dangerouslySetInnerHTML={{ __html: BASE_CSS + CSS }} /></div></main>;
 
   const group = GROUPS[s ?? ""] ? (s as string) : "all";
   const range = days && days in RANGE ? days : "30";
@@ -145,14 +129,14 @@ export default async function Desk({ searchParams }: { searchParams: Promise<{ k
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: BASE_CSS + CSS }} />
       <main>
         <header className="top">
           <div className="brand">
             <div className="mark">A</div>
             <div><b>Aangan Studio</b><span>Enquiry desk</span></div>
           </div>
-          <div className="today">{new Date().toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", weekday: "long", day: "numeric", month: "long" })}</div>
+          <div className="today">{key === process.env.DASHBOARD_KEY && <a href={`/dashboard?key=${key}`} style={{ marginRight: 14, color: "inherit" }}>Performance →</a>}{new Date().toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", weekday: "long", day: "numeric", month: "long" })}</div>
         </header>
 
         <section className={`hero ${alert ? "alert" : "calm"}`}>
