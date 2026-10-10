@@ -1,0 +1,12 @@
+node_modules
+.next
+.env
+.env.*
+!.env.example
+.vercel
+# Internal pricing guide and raw client data never go to the repo
+inputs/pricing.md
+inputs/*.pdf
+inputs/enquiries*.txt
+*.tsbuildinfo
+next-env.d.ts

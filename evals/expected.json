@@ -1,0 +1,92 @@
+{
+  "_note": "Expected outcomes per qualified.md, written by Claude. Nikhil / the reviewer should correct. 'review' marks genuine judgement calls.",
+  "T01": {
+    "status": "qualified"
+  },
+  "T02": {
+    "status": "qualified",
+    "price_asked": true
+  },
+  "T03": {
+    "status": "declined",
+    "why": "Nashik: outside Pune/PCMC"
+  },
+  "T04": {
+    "status": "declined",
+    "why": "advice only, no execution"
+  },
+  "T05": {
+    "status": "qualified"
+  },
+  "T06": {
+    "status": "qualified",
+    "why": "800 sq ft office, within 3,000 sq ft max"
+  },
+  "T07": {
+    "status": "borderline",
+    "review": true,
+    "why": "Wanted it before Diwali (3 weeks, fails timeline), then offered a November start but did not commit."
+  },
+  "T08": {
+    "status": "missed",
+    "why": "Missed call, covered by finalize path not replay"
+  },
+  "T09": {
+    "status": "escalated",
+    "why": "Complaint about existing project"
+  },
+  "T10": {
+    "status": "declined",
+    "why": "Volunteered Rs 1-1.5 lakh budget for kitchen + bedroom"
+  },
+  "T11": {
+    "status": "qualified",
+    "why": "Rented apartment is fine without structural changes The transcript never states a timeline, so the agent asking for one is correct.",
+    "unanswered": [
+      "timeline"
+    ]
+  },
+  "T12": {
+    "status": "qualified"
+  },
+  "T13": {
+    "status": "qualified",
+    "price_asked": true,
+    "unanswered": [
+      "timeline"
+    ],
+    "why": " The transcript never states a timeline, so the agent asking for one is correct."
+  },
+  "T14": {
+    "status": "qualified",
+    "why": "Son calling for parents; decision-maker unclear is treated as qualified with a note The transcript never states a timeline, so the agent asking for one is correct.",
+    "unanswered": [
+      "timeline"
+    ]
+  },
+  "T15": {
+    "status": "qualified",
+    "why": "Possession in 6 weeks; design can start now"
+  },
+  "T16": {
+    "status": "escalated",
+    "review": true,
+    "why": "Frustrated about a lost enquiry. Rubric is silent; hard rule 3 says escalate complaints, but they still want a consultation."
+  },
+  "T17": {
+    "status": "qualified",
+    "why": "Second call after a drop; first call is the callback path"
+  },
+  "T18": {
+    "status": "borderline",
+    "review": true,
+    "why": "180 sq ft pod. services.md has only a 3,000 sq ft maximum; the 500 sq ft minimum was said by the front desk, not written anywhere, so a human decides until Nikhil rules."
+  },
+  "T19": {
+    "status": "declined",
+    "why": "Restaurant is out of scope"
+  },
+  "T20": {
+    "status": "qualified"
+  }
+}

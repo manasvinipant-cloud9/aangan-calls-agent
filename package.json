@@ -1,0 +1,30 @@
+{
+  "name": "aangan-calls-agent",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "vitest run",
+    "eval": "tsx --env-file=.env.local scripts/eval.ts",
+    "setup:hubspot": "tsx --env-file=.env.local scripts/setup-hubspot.ts",
+    "simulate": "tsx --env-file=.env.local scripts/simulate.ts"
+  },
+  "dependencies": {
+    "@google/genai": "^2.28.0",
+    "@supabase/supabase-js": "^2.117.3",
+    "next": "^16.4.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}
