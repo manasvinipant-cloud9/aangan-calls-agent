@@ -58,6 +58,7 @@ export default async function Designers({ searchParams }: { searchParams: Promis
           <a className={t === "open" ? "on" : ""} href={href("open")}>Open leads</a>
           <a className={t === "callbacks" ? "on" : ""} href={href("callbacks")}>Needs a callback</a>
           <a className={t === "done" ? "on" : ""} href={href("done")}>Booked / closed</a>
+          <a href={`/leads?key=${key}`}>All leads</a>
         </nav>
         {!rows.length && <p className="empty">Nothing here right now.</p>}
         {rows.map((c) => {
